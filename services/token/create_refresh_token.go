@@ -9,7 +9,7 @@ import (
 
 func (tokenService *Service) CreateRefreshToken(user *models.User) (t string, err error) {
 	claimsRefresh := &JwtCustomRefreshClaims{
-		ID: user.ID,
+		UUID: user.UUID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * ExpireRefreshCount)),
 		},

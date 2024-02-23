@@ -45,9 +45,9 @@ func (registerHandler *RegisterHandler) Register(c echo.Context) error {
 
 	existUser := models.User{}
 	userRepository := repositories.NewUserRepository(registerHandler.server.DB)
-	userRepository.GetUserByEmail(&existUser, registerRequest.Email)
+	err := userRepository.GetUserByEmail(&existUser, registerRequest.Email)
 
-	if existUser.ID != 0 {
+	if err != nil {
 		return responses.ErrorResponse(c, http.StatusBadRequest, "User already exists")
 	}
 

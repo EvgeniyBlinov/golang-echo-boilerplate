@@ -2,13 +2,15 @@ package responses
 
 import (
 	"echo-demo-project/models"
+
+	"github.com/google/uuid"
 )
 
 type PostResponse struct {
-	Title    string `json:"title" example:"Echo"`
-	Content  string `json:"content" example:"Echo is nice!"`
-	Username string `json:"username" example:"John Doe"`
-	ID       uint   `json:"id" example:"1"`
+	Title    string    `json:"title" example:"Echo"`
+	Content  string    `json:"content" example:"Echo is nice!"`
+	Username string    `json:"username" example:"John Doe"`
+	UUID     uuid.UUID `json:"uuid" example:"018de611-20ed-71c5-9b18-863a7851eef2"`
 }
 
 func NewPostResponse(posts []models.Post) *[]PostResponse {
@@ -19,7 +21,7 @@ func NewPostResponse(posts []models.Post) *[]PostResponse {
 			Title:    posts[i].Title,
 			Content:  posts[i].Content,
 			Username: posts[i].User.Name,
-			ID:       posts[i].ID,
+			UUID:     posts[i].UUID,
 		})
 	}
 

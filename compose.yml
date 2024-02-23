@@ -8,7 +8,8 @@ services:
     volumes:
       - ./:/app/
     depends_on:
-      - echo_mysql
+      #- echo_mysql
+      - echo_pg
     env_file:
       - .env
     environment:
@@ -19,24 +20,57 @@ services:
     networks:
       - echo-demo-stack
 
-  echo_mysql:
-    image: mysql:8.0
+  echo_pg:
+    #image: postgres:16
+    # @TODO:  <26-02-24, Evgeniy Blinov <evgeniy_blinov@mail.ru>> : Add uuidv7 to postgres 16
+    image: fboulnois/pg_uuidv7:latest
     container_name: echo_db
-    ports:
-      - ${EXPOSE_DB_PORT}:${DB_PORT}
+    restart: always
+    env_file:
+      - .env
     environment:
-      - MYSQL_ROOT_HOST=${DB_HOST}
-      - MYSQL_USER=${DB_USER}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
-      - MYSQL_DATABASE=${DB_NAME}
-      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - '35432:5432'
     volumes:
-      - database_mysql:/var/lib/mysql
+      - database_postgres:/var/lib/postgresql
+      - ./migrations/init-database.sh:/docker-entrypoint-initdb.d/init-database.sh
     networks:
       - echo-demo-stack
 
+  echo_pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: echo_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "admin@example.com"
+      PGADMIN_DEFAULT_PASSWORD: "password"
+    ports:
+      - '32082:80'
+    networks:
+      - echo-demo-stack
+
+
+  #echo_mysql:
+    #image: mysql:8.0
+    #container_name: echo_db
+    #ports:
+      #- ${EXPOSE_DB_PORT}:${DB_PORT}
+    #environment:
+      #- MYSQL_ROOT_HOST=${DB_HOST}
+      #- MYSQL_USER=${DB_USER}
+      #- MYSQL_PASSWORD=${DB_PASSWORD}
+      #- MYSQL_DATABASE=${DB_NAME}
+      #- MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+    #volumes:
+      #- database_mysql:/var/lib/mysql
+    #networks:
+      #- echo-demo-stack
+
 volumes:
-  database_mysql:
+  #database_mysql:
+  database_postgres:
 
 networks:
   echo-demo-stack:

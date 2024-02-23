@@ -9,9 +9,9 @@ import (
 	postservice "echo-demo-project/services/post"
 	"echo-demo-project/services/token"
 	"net/http"
-	"strconv"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
@@ -49,15 +49,17 @@ func (p *PostHandlers) CreatePost(c echo.Context) error {
 
 	user := c.Get("user").(*jwt.Token)
 	claims := user.Claims.(*token.JwtCustomClaims)
-	id := claims.ID
+	uuid := claims.UUID
 
 	post := models.Post{
-		Title:   createPostRequest.Title,
-		Content: createPostRequest.Content,
-		UserID:  id,
+		Title:    createPostRequest.Title,
+		Content:  createPostRequest.Content,
+		UserUUID: uuid,
 	}
 	postService := postservice.NewPostService(p.server.DB)
-	postService.Create(&post)
+	if err := postService.Create(&post); err != nil {
+		return responses.ErrorResponse(c, http.StatusInternalServerError, "DB error")
+	}
 
 	return responses.MessageResponse(c, http.StatusCreated, "Post successfully created")
 }
@@ -68,25 +70,31 @@ func (p *PostHandlers) CreatePost(c echo.Context) error {
 //	@Description	Delete post
 //	@ID				posts-delete
 //	@Tags			Posts Actions
-//	@Param			id	path		int	true	"Post ID"
+//	@Param			uuid	path		string	true	"Post ID"
 //	@Success		204	{object}	responses.Data
 //	@Failure		404	{object}	responses.Error
 //	@Security		ApiKeyAuth
-//	@Router			/posts/{id} [delete]
+//	@Router			/posts/{uuid} [delete]
 func (p *PostHandlers) DeletePost(c echo.Context) error {
-	id, _ := strconv.Atoi(c.Param("id"))
+	uuid, err := uuid.Parse(c.Param("uuid"))
+	if err != nil {
+		return responses.ErrorResponse(c, http.StatusBadRequest, "UUID validation failed")
+	}
 
 	post := models.Post{}
 
 	postRepository := repositories.NewPostRepository(p.server.DB)
-	postRepository.GetPost(&post, id)
+	err = postRepository.GetPost(&post, uuid)
 
-	if post.ID == 0 {
+	if err != nil {
 		return responses.ErrorResponse(c, http.StatusNotFound, "Post not found")
 	}
 
 	postService := postservice.NewPostService(p.server.DB)
-	postService.Delete(&post)
+	err = postService.Delete(&post)
+	if err != nil {
+		return responses.MessageResponse(c, http.StatusInternalServerError, "DB error")
+	}
 
 	return responses.MessageResponse(c, http.StatusNoContent, "Post deleted successfully")
 }
@@ -105,7 +113,10 @@ func (p *PostHandlers) GetPosts(c echo.Context) error {
 	var posts []models.Post
 
 	postRepository := repositories.NewPostRepository(p.server.DB)
-	postRepository.GetPosts(&posts)
+	err := postRepository.GetPosts(&posts)
+	if err != nil {
+		return responses.MessageResponse(c, http.StatusInternalServerError, "DB error")
+	}
 
 	response := responses.NewPostResponse(posts)
 	return responses.Response(c, http.StatusOK, response)
@@ -119,36 +130,43 @@ func (p *PostHandlers) GetPosts(c echo.Context) error {
 //	@Tags			Posts Actions
 //	@Accept			json
 //	@Produce		json
-//	@Param			id		path		int							true	"Post ID"
+//	@Param			uuid		path		string							true	"Post ID"
 //	@Param			params	body		requests.UpdatePostRequest	true	"Post title and content"
 //	@Success		200		{object}	responses.Data
 //	@Failure		400		{object}	responses.Error
 //	@Failure		404		{object}	responses.Error
 //	@Security		ApiKeyAuth
-//	@Router			/posts/{id} [put]
+//	@Router			/posts/{uuid} [put]
 func (p *PostHandlers) UpdatePost(c echo.Context) error {
 	updatePostRequest := new(requests.UpdatePostRequest)
-	id, _ := strconv.Atoi(c.Param("id"))
+	uuid, err := uuid.Parse(c.Param("uuid"))
 
-	if err := c.Bind(updatePostRequest); err != nil {
+	if err != nil {
+		return responses.ErrorResponse(c, http.StatusBadRequest, "UUID validation failed")
+	}
+
+	if err = c.Bind(updatePostRequest); err != nil {
 		return err
 	}
 
-	if err := updatePostRequest.Validate(); err != nil {
+	if err = updatePostRequest.Validate(); err != nil {
 		return responses.ErrorResponse(c, http.StatusBadRequest, "Required fields are empty")
 	}
 
 	post := models.Post{}
 
 	postRepository := repositories.NewPostRepository(p.server.DB)
-	postRepository.GetPost(&post, id)
+	err = postRepository.GetPost(&post, uuid)
 
-	if post.ID == 0 {
+	if err != nil {
 		return responses.ErrorResponse(c, http.StatusNotFound, "Post not found")
 	}
 
 	postService := postservice.NewPostService(p.server.DB)
-	postService.Update(&post, updatePostRequest)
+	err = postService.Update(&post, updatePostRequest)
+	if err != nil {
+		return responses.ErrorResponse(c, http.StatusInternalServerError, "DB error")
+	}
 
 	return responses.MessageResponse(c, http.StatusOK, "Post successfully updated")
 }

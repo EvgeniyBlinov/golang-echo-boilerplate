@@ -3,6 +3,7 @@ package seeders
 import (
 	"echo-demo-project/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -28,12 +29,12 @@ func (userSeeder *UserSeeder) SetUsers() {
 		},
 	}
 
-	for key, value := range users {
+	for _, value := range users {
 		user := models.User{}
-		userSeeder.DB.First(&user, key)
+		err := userSeeder.DB.Where("email = ?", value["email"]).Find(&user).Error
 
-		if user.ID == 0 {
-			user.ID = uint(key)
+		if err != nil {
+			user.UUID, _ = uuid.NewV7()
 			user.Email = value["email"]
 			user.Name = value["name"]
 			user.Password = value["password"]

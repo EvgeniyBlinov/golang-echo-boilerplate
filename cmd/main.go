@@ -11,9 +11,9 @@ import (
 //	@version		1.0
 //	@description	This is a demo version of Echo app.
 
-//	@contact.name	NIX Solutions
-//	@contact.url	https://www.nixsolutions.com/
-//	@contact.email	ask@nixsolutions.com
+//	@contact.name	Blinov Evgeniy
+//	@contact.url	https://evgeniyblinov.ru/
+//	@contact.email	evgeniy_blinov@mail.ru
 
 //	@securityDefinitions.apikey	ApiKeyAuth
 //	@in							header

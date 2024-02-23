@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
 	jwtGo "github.com/golang-jwt/jwt/v5"
@@ -49,9 +50,9 @@ func (authHandler *AuthHandler) Login(c echo.Context) error {
 
 	user := models.User{}
 	userRepository := repositories.NewUserRepository(authHandler.server.DB)
-	userRepository.GetUserByEmail(&user, loginRequest.Email)
+	err := userRepository.GetUserByEmail(&user, loginRequest.Email)
 
-	if user.ID == 0 || (bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password)) != nil) {
+	if err != nil || (bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password)) != nil) {
 		return responses.ErrorResponse(c, http.StatusUnauthorized, "Invalid credentials")
 	}
 
@@ -104,9 +105,14 @@ func (authHandler *AuthHandler) RefreshToken(c echo.Context) error {
 	}
 
 	user := new(models.User)
-	authHandler.server.DB.First(&user, int(claims["id"].(float64)))
+	uuid, err := uuid.Parse(claims["uuid"].(string))
+	if err != nil {
+		return responses.ErrorResponse(c, http.StatusUnauthorized, "User not found")
+	}
 
-	if user.ID == 0 {
+	err = authHandler.server.DB.First(&user, uuid).Error
+
+	if err != nil {
 		return responses.ErrorResponse(c, http.StatusUnauthorized, "User not found")
 	}
 

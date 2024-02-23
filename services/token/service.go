@@ -5,19 +5,20 @@ import (
 	"echo-demo-project/models"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 const ExpireCount = 2
 const ExpireRefreshCount = 168
 
 type JwtCustomClaims struct {
-	Name string `json:"name"`
-	ID   uint   `json:"id"`
+	Name string    `json:"name"`
+	UUID uuid.UUID `json:"uuid"`
 	jwt.RegisteredClaims
 }
 
 type JwtCustomRefreshClaims struct {
-	ID uint `json:"id"`
+	UUID uuid.UUID `json:"uuid"`
 	jwt.RegisteredClaims
 }
 

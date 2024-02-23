@@ -1,7 +1,7 @@
 package list
 
 import (
-	mysql "github.com/ShkrutDenis/go-migrations/builder"
+	postgres "github.com/EvgeniyBlinov/go-migrations/builder"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -12,16 +12,16 @@ func (m *CreatePostTable) GetName() string {
 }
 
 func (m *CreatePostTable) Up(con *sqlx.DB) {
-	table := mysql.NewTable("posts", con)
-	table.Column("id").Type("int unsigned").Autoincrement()
-	table.PrimaryKey("id")
+	table := postgres.NewTable("posts", con)
+	table.Column("uuid").Type("uuid").NotNull().Default("uuid_generate_v7()")
+	table.PrimaryKey("uuid")
 	table.String("title", 500).Nullable()
 	table.String("content", 1000).Nullable()
-	table.Column("deleted_at").Type("datetime").Nullable()
-	table.Column("user_id").Type("int unsigned")
-	table.ForeignKey("user_id").
+	table.Column("deleted_at").Type("timestamp").Nullable()
+	table.Column("user_uuid").Type("uuid").NotNull()
+	table.ForeignKey("user_uuid").
 		Reference("users").
-		On("id").
+		On("uuid").
 		OnDelete("cascade").
 		OnUpdate("cascade")
 	table.WithTimestamps()
@@ -30,5 +30,5 @@ func (m *CreatePostTable) Up(con *sqlx.DB) {
 }
 
 func (m *CreatePostTable) Down(con *sqlx.DB) {
-	mysql.DropTable("posts", con).MustExec()
+	postgres.DropTable("posts", con).MustExec()
 }
