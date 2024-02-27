@@ -4,14 +4,17 @@ import (
 	"database/sql/driver"
 	"echo-demo-project/server"
 	"encoding/json"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/labstack/echo/v4"
 	"net/http/httptest"
 	"regexp"
 	"strings"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 )
 
-const UserId = 1
+var UserId, _ = uuid.NewV7()
+var UserId2, _ = uuid.NewV7()
 
 type TestCase struct {
 	TestName    string
@@ -49,15 +52,17 @@ type ExpectedResponse struct {
 	BodyPart   string
 }
 
-var SelectVersionMock = QueryMock{
-	Query: "SELECT VERSION()",
-	Reply: MockReply{
-		Columns: []string{"VERSION()"},
-		Rows: [][]driver.Value{
-			{"8.0.32"},
-		},
-	},
-}
+var SelectVersionMock = QueryMock{}
+
+//var SelectVersionMock = QueryMock{
+//Query: "SELECT VERSION()",
+//Reply: MockReply{
+//Columns: []string{"VERSION()"},
+//Rows: [][]driver.Value{
+//{"8.0.32"},
+//},
+//},
+//}
 
 func PrepareContextFromTestCase(s *server.Server, test TestCase) (c echo.Context, recorder *httptest.ResponseRecorder) {
 	requestJson, _ := json.Marshal(test.RequestBody)

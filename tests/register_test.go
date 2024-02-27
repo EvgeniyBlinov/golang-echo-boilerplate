@@ -6,11 +6,12 @@ import (
 	"echo-demo-project/server"
 	"echo-demo-project/server/handlers"
 	"echo-demo-project/tests/helpers"
+	"net/http"
+	"testing"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"testing"
 )
 
 func TestWalkRegister(t *testing.T) {
@@ -44,7 +45,7 @@ func TestWalkRegister(t *testing.T) {
 					Query:    "SELECT * FROM `users` WHERE email = ? AND `users`.`deleted_at` IS NULL",
 					QueryArg: []driver.Value{"new-user@test.com"},
 					Reply: helpers.MockReply{
-						Columns: []string{"id"},
+						Columns: []string{"uuid"},
 					},
 				},
 			},
@@ -108,7 +109,7 @@ func TestWalkRegister(t *testing.T) {
 					Query:    "SELECT * FROM `users`  WHERE email = ? AND `users`.`deleted_at` IS NULL",
 					QueryArg: []driver.Value{"duplicated@test.com"},
 					Reply: helpers.MockReply{
-						Columns: []string{"id", "email", "password"},
+						Columns: []string{"uuid", "email", "password"},
 						Rows: [][]driver.Value{
 							{helpers.UserId, "duplicated@test.com", "EncryptedPassword"},
 						},

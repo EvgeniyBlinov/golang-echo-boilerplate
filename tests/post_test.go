@@ -7,16 +7,19 @@ import (
 	"echo-demo-project/server/handlers"
 	"echo-demo-project/services/token"
 	"echo-demo-project/tests/helpers"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
 )
 
-const postId = "1"
-const postIdNotExists = "2"
+var postId, _ = uuid.NewV7()
+
+var postIdNotExists, _ = uuid.NewV7()
 
 func TestWalkPostsCrud(t *testing.T) {
 	dbMock, sqlMock, err := sqlmock.New()
@@ -34,18 +37,18 @@ func TestWalkPostsCrud(t *testing.T) {
 	}
 	requestUpdate := helpers.Request{
 		Method: http.MethodPut,
-		Url:    "/posts/" + postId,
+		Url:    "/posts/" + (postId).String(),
 		PathParam: &helpers.PathParam{
-			Name:  "id",
-			Value: postId,
+			Name:  "uuid",
+			Value: (postId).String(),
 		},
 	}
 	requestDelete := helpers.Request{
 		Method: http.MethodDelete,
-		Url:    "/posts/" + postId,
+		Url:    "/posts/" + (postId).String(),
 		PathParam: &helpers.PathParam{
 			Name:  "id",
-			Value: postId,
+			Value: (postId).String(),
 		},
 	}
 	handlerFuncCreate := func(s *server.Server, c echo.Context) error {
@@ -63,15 +66,15 @@ func TestWalkPostsCrud(t *testing.T) {
 
 	claims := &token.JwtCustomClaims{
 		Name: "user",
-		ID:   helpers.UserId,
+		UUID: helpers.UserId,
 	}
 	validToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	commonMock := &helpers.QueryMock{
-		Query:    "SELECT * FROM `posts` WHERE id = ? AND `posts`.`deleted_at` IS NULL",
-		QueryArg: []driver.Value{1},
+		Query:    "SELECT * FROM `posts` WHERE uuid = ? AND `posts`.`deleted_at` IS NULL",
+		QueryArg: []driver.Value{helpers.UserId},
 		Reply: helpers.MockReply{
-			Columns: []string{"id", "title", "content", "username"},
+			Columns: []string{"uuid", "title", "content", "username"},
 			Rows: [][]driver.Value{
 				{helpers.UserId, "title", "content", "Username"},
 			},
@@ -121,7 +124,7 @@ func TestWalkPostsCrud(t *testing.T) {
 				{
 					Query: "SELECT * FROM `posts` WHERE ",
 					Reply: helpers.MockReply{
-						Columns: []string{"id", "title", "content", "username"},
+						Columns: []string{"uuid", "title", "content", "username"},
 						Rows: [][]driver.Value{
 							{helpers.UserId, "title", "content", "Username"},
 						},
@@ -130,7 +133,7 @@ func TestWalkPostsCrud(t *testing.T) {
 			},
 			helpers.ExpectedResponse{
 				StatusCode: 200,
-				BodyPart:   "[{\"title\":\"title\",\"content\":\"content\",\"username\":\"\",\"id\":1}]",
+				BodyPart:   "[{\"title\":\"title\",\"content\":\"content\",\"username\":\"\",\"uuid\":1}]",
 			},
 		},
 		{
@@ -169,10 +172,10 @@ func TestWalkPostsCrud(t *testing.T) {
 			"Update non-existent post",
 			helpers.Request{
 				Method: http.MethodPut,
-				Url:    "/posts/" + postIdNotExists,
+				Url:    "/posts/" + (postIdNotExists).String(),
 				PathParam: &helpers.PathParam{
-					Name:  "id",
-					Value: postIdNotExists,
+					Name:  "uuid",
+					Value: (postIdNotExists).String(),
 				},
 			},
 			requests.UpdatePostRequest{
@@ -203,10 +206,10 @@ func TestWalkPostsCrud(t *testing.T) {
 			"Delete non-existent post",
 			helpers.Request{
 				Method: http.MethodDelete,
-				Url:    "/posts/" + postIdNotExists,
+				Url:    "/posts/" + (postIdNotExists).String(),
 				PathParam: &helpers.PathParam{
-					Name:  "id",
-					Value: postIdNotExists,
+					Name:  "uuid",
+					Value: (postIdNotExists).String(),
 				},
 			},
 			"",

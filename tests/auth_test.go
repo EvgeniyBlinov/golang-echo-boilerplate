@@ -13,14 +13,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 func TestWalkAuth(t *testing.T) {
@@ -42,7 +43,7 @@ func TestWalkAuth(t *testing.T) {
 		Query:    "SELECT * FROM `users`  WHERE email = ? AND `users`.`deleted_at` IS NULL",
 		QueryArg: []driver.Value{"name@test.com"},
 		Reply: helpers.MockReply{
-			Columns: []string{"id", "email", "name", "password"},
+			Columns: []string{"uuid", "email", "name", "password"},
 			Rows: [][]driver.Value{
 				{helpers.UserId, "name@test.com", "User Name", encryptedPassword},
 			},
@@ -137,11 +138,11 @@ func TestWalkRefresh(t *testing.T) {
 	tokenService := token.NewTokenService(config.NewConfig())
 
 	validUser := models.User{Email: "name@test.com"}
-	validUser.ID = helpers.UserId
+	validUser.UUID = helpers.UserId
 	validToken, _ := tokenService.CreateRefreshToken(&validUser)
 
 	notExistUser := models.User{Email: "user.not.exists@test.com"}
-	notExistUser.ID = helpers.UserId + 1
+	notExistUser.UUID = helpers.UserId2
 	notExistToken, _ := tokenService.CreateRefreshToken(&notExistUser)
 
 	invalidToken := validToken[1 : len(validToken)-1]
@@ -157,10 +158,10 @@ func TestWalkRefresh(t *testing.T) {
 			[]*helpers.QueryMock{
 				&helpers.SelectVersionMock,
 				{
-					Query:    "SELECT * FROM `users` WHERE `users`.`id` = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1",
-					QueryArg: []driver.Value{int64(1)},
+					Query:    "SELECT * FROM `users` WHERE `users`.`uuid` = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`uuid` LIMIT 1",
+					QueryArg: []driver.Value{helpers.UserId},
 					Reply: helpers.MockReply{
-						Columns: []string{"id", "name"},
+						Columns: []string{"uuid", "name"},
 						Rows: [][]driver.Value{
 							{helpers.UserId, "User Name"},
 						},
@@ -180,10 +181,10 @@ func TestWalkRefresh(t *testing.T) {
 			handlerFunc,
 			[]*helpers.QueryMock{&helpers.SelectVersionMock,
 				{
-					Query:    "SELECT * FROM `users` WHERE `users`.`id` = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1",
-					QueryArg: []driver.Value{int64(2)},
+					Query:    "SELECT * FROM `users` WHERE `users`.`uuid` = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`uuid` LIMIT 1",
+					QueryArg: []driver.Value{helpers.UserId2},
 					Reply: helpers.MockReply{
-						Columns: []string{"id", "name"},
+						Columns: []string{"uuid", "name"},
 					},
 				},
 			},
@@ -201,8 +202,8 @@ func TestWalkRefresh(t *testing.T) {
 			handlerFunc,
 			[]*helpers.QueryMock{&helpers.SelectVersionMock,
 				{
-					Query:    "SELECT * FROM `users` WHERE `users`.`id` = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1",
-					QueryArg: []driver.Value{int64(2)},
+					Query:    "SELECT * FROM `users` WHERE `users`.`uuid` = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`uuid` LIMIT 1",
+					QueryArg: []driver.Value{helpers.UserId2},
 					Reply: helpers.MockReply{
 						Columns: []string{"id", "name"},
 						Rows: [][]driver.Value{
@@ -244,11 +245,11 @@ func assertTokenResponse(t *testing.T, recorder *httptest.ResponseRecorder) {
 	var authResponse responses.LoginResponse
 	_ = json.Unmarshal([]byte(recorder.Body.String()), &authResponse)
 
-	assert.Equal(t, float64(helpers.UserId), getUserIdFromToken(authResponse.AccessToken))
-	assert.Equal(t, float64(helpers.UserId), getUserIdFromToken(authResponse.RefreshToken))
+	assert.Equal(t, helpers.UserId, getUserIdFromToken(authResponse.AccessToken))
+	assert.Equal(t, helpers.UserId, getUserIdFromToken(authResponse.RefreshToken))
 }
 
-func getUserIdFromToken(tokenToParse string) float64 {
+func getUserIdFromToken(tokenToParse string) string {
 	jwtToken, _ := jwt.Parse(tokenToParse, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New(fmt.Sprintf("Unexpected signing method: %v", token.Header["alg"]))
@@ -258,5 +259,5 @@ func getUserIdFromToken(tokenToParse string) float64 {
 	})
 	claims, _ := jwtToken.Claims.(jwt.MapClaims)
 
-	return claims["id"].(float64)
+	return claims["uid"].(string)
 }
