@@ -13,8 +13,10 @@ services:
     env_file:
       - .env
     environment:
-      - DB_CONNECTION=${DB_HOST}:${DB_PORT}
-      - WAIT_HOSTS=${DB_HOST}:${DB_PORT}
+      - DB_HOST=echo_pg
+      - DB_PORT=5432
+      - DB_CONNECTION=echo_pg:5432
+      - WAIT_HOSTS=echo_pg:5432
       - WAIT_BEFORE_HOSTS=15
       - WAIT_SLEEP_INTERVAL=3
     networks:

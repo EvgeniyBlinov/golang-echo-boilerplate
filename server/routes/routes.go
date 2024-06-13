@@ -4,6 +4,7 @@ import (
 	s "echo-demo-project/server"
 	"echo-demo-project/server/handlers"
 	"echo-demo-project/services/token"
+	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
@@ -20,6 +21,12 @@ func ConfigureRoutes(server *s.Server) {
 
 	server.Echo.Use(middleware.Logger())
 
+	server.Echo.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     strings.Split(server.Config.HTTP.AllowOrigins, ","),
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, echo.HeaderCookie},
+		AllowCredentials: true,
+	}))
+
 	server.Echo.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	server.Echo.POST("/login", authHandler.Login)
@@ -32,7 +39,8 @@ func ConfigureRoutes(server *s.Server) {
 		NewClaimsFunc: func(c echo.Context) jwt.Claims {
 			return new(token.JwtCustomClaims)
 		},
-		SigningKey: []byte(server.Config.Auth.AccessSecret),
+		SigningKey:  []byte(server.Config.Auth.AccessSecret),
+		TokenLookup: "header:Authorization:Bearer ,cookie:access_token",
 	}
 	r.Use(echojwt.WithConfig(config))
 
